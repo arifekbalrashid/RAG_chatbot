@@ -45,6 +45,7 @@ langchain-text-splitters
 
 huggingface-hub
 torch --index-url https://download.pytorch.org/whl/cpu
+sentence-transformers
 
 faiss-cpu
 openai
