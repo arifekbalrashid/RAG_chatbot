@@ -53,6 +53,8 @@ pypdf
 beautifulsoup4
 requests
 lxml
+pdfplumber
+
 
 networkx
 
