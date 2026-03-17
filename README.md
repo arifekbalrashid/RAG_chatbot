@@ -91,7 +91,7 @@ enterprise-rag-system/
 Clone the repository:
 
 ```
-git clone https://github.com/arifekbalrashid/enterprise-rag-system.git
+git clone https://github.com/arifekbalrashid/RAG_chatbot.git
 cd RAG_chatbot
 ```
 
