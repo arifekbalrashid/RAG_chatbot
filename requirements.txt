@@ -37,30 +37,42 @@
 # # Logging
 # loguru>=0.7.0
 
+# Core RAG
 langchain-core
 langchain-community
 langgraph
 langchain-huggingface
 langchain-text-splitters
 
+# Embeddings (CPU-safe)
 huggingface-hub
+
+# Torch (CPU ONLY)
 torch --index-url https://download.pytorch.org/whl/cpu
+
+# Reranker (needed for CrossEncoder)
 sentence-transformers
 
+# Vector DB
 faiss-cpu
+
+# LLM
 openai
 
+# Document Processing
 pypdf
+pdfplumber
 beautifulsoup4
 requests
 lxml
-pdfplumber
 
-
+# Graph
 networkx
 
+# UI
 streamlit
 
+# Config & Utils
 python-dotenv
 pydantic
 pydantic-settings
