@@ -7,7 +7,10 @@ No local PyTorch or model downloads required.
 
 from __future__ import annotations
 
+import warnings
 from functools import lru_cache
+
+warnings.filterwarnings("ignore", message=".*HuggingFaceInferenceAPIEmbeddings.*")
 
 from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
 from loguru import logger
