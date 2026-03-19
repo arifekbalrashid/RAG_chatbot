@@ -21,18 +21,25 @@ from urllib.parse import urlparse
 import streamlit as st
 from loguru import logger
 
-# Ensure project root is on sys.path
-PROJECT_ROOT = Path(__file__).resolve().parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from config import settings
 from ingestion.pdf_loader import load_pdf
 from ingestion.web_loader import load_webpage
 from langgraph_pipeline.rag_graph import RAGPipeline
 from vectorstore.faiss_store import FAISSStore
 
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
+if "sources_ingested" not in st.session_state:
+    st.session_state.sources_ingested = []
+
+if "total_chunks" not in st.session_state:
+    st.session_state.total_chunks = 0
+    
+# Ensure project root is on sys.path
+PROJECT_ROOT = Path(__file__).resolve().parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 # Page Config
 
 st.set_page_config(
@@ -307,28 +314,17 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+@st.cache_resource
+def get_faiss_store():
+    return FAISSStore()
 
-# Initialise session state
-
-def _init_rag_engine():
-    """Create and cache the RAG engine in session state."""
-    if "faiss_store" not in st.session_state:
-        st.session_state.faiss_store = FAISSStore()
-    if "rag_pipeline" not in st.session_state:
-        st.session_state.rag_pipeline = RAGPipeline(st.session_state.faiss_store)
-    if "chat_history" not in st.session_state:
-        st.session_state.chat_history = []
-    if "sources_ingested" not in st.session_state:
-        st.session_state.sources_ingested = []
-    if "total_chunks" not in st.session_state:
-        st.session_state.total_chunks = 0
-
-
-_init_rag_engine()
+@st.cache_resource
+def get_pipeline(_store):
+    return RAGPipeline(_store)
 
 # Convenience references
-faiss_store: FAISSStore = st.session_state.faiss_store
-pipeline: RAGPipeline = st.session_state.rag_pipeline
+faiss_store = get_faiss_store()
+pipeline = get_pipeline(faiss_store)
 
 
 # Helper functions
@@ -373,7 +369,7 @@ def ingest_website(url: str) -> dict:
         return {"error": "Internal URLs are not allowed."}
 
     try:
-        documents = load_webpage(url)
+        documents = load_webpage(url, timeout=10)
 
         if not documents:
             return {"error": f"No content could be extracted from {url}"}
@@ -537,7 +533,7 @@ if ask_clicked and question:
     if not faiss_store.is_ready:
         st.warning("⚠️ Please upload a PDF or add a website URL first.")
     elif not settings.groq_api_key:
-        st.error("GROQ_API_KEY is not set. Go to Space Settings → Secrets to add it.")
+        st.error("GROQ_API_KEY is not set. Please configure environment variables.")
     else:
         with st.spinner("Running RAG pipeline — retrieving, re-ranking, generating..."):
             start = time.perf_counter()
