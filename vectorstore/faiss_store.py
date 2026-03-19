@@ -18,7 +18,7 @@ from utils.helpers import timed
 
 
 class FAISSStore:
-    """In-memory FAISS vector store (no disk persistence for HF Spaces)."""
+    """In-memory FAISS vector store."""
 
     def __init__(self):
         self._embeddings = get_embedding_model()

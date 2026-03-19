@@ -36,6 +36,9 @@ if "sources_ingested" not in st.session_state:
 if "total_chunks" not in st.session_state:
     st.session_state.total_chunks = 0
     
+if "pipeline" not in st.session_state:
+    st.session_state.pipeline = None
+
 # Ensure project root is on sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -318,13 +321,11 @@ st.markdown("""
 def get_faiss_store():
     return FAISSStore()
 
-@st.cache_resource
-def get_pipeline(_store):
-    return RAGPipeline(_store)
+def create_pipeline(store):
+    return RAGPipeline(store)
 
 # Convenience references
 faiss_store = get_faiss_store()
-pipeline = get_pipeline(faiss_store)
 
 
 # Helper functions
@@ -339,6 +340,9 @@ def ingest_pdf(uploaded_file) -> dict:
             return {"error": "No text could be extracted from the PDF."}
 
         faiss_store.add_documents(documents)
+        if "pipeline" not in st.session_state or st.session_state.pipeline is None:
+            st.session_state.pipeline = create_pipeline(faiss_store)
+        pipeline = st.session_state.pipeline
         pipeline.register_documents(documents)
 
         st.session_state.total_chunks += len(documents)
@@ -375,6 +379,10 @@ def ingest_website(url: str) -> dict:
             return {"error": f"No content could be extracted from {url}"}
 
         faiss_store.add_documents(documents)
+        if st.session_state.pipeline is None:
+            st.session_state.pipeline = create_pipeline(faiss_store)
+
+        pipeline = st.session_state.pipeline
         pipeline.register_documents(documents)
 
         display_name = url[:50] + "..." if len(url) > 50 else url
@@ -537,7 +545,11 @@ if ask_clicked and question:
     else:
         with st.spinner("Running RAG pipeline — retrieving, re-ranking, generating..."):
             start = time.perf_counter()
-            result = query_rag(question)
+            if st.session_state.pipeline is None:
+                st.session_state.pipeline = create_pipeline(faiss_store)
+
+            pipeline = st.session_state.pipeline
+            result = pipeline.run(question)
             total_time = time.perf_counter() - start
 
         if result and not result.get("error"):
