@@ -1,19 +1,11 @@
-# Torch
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
-
 # Core RAG
 langchain-core
 langchain-community
 langgraph
-langchain-huggingface
 langchain-text-splitters
 
-# Embeddings (CPU-safe)
+# Embeddings (API-based via HF Inference — no local models)
 huggingface-hub
-
-# Reranker (needed for CrossEncoder)
-sentence-transformers
 
 # Vector DB
 faiss-cpu

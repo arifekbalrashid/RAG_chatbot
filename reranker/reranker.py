@@ -1,30 +1,19 @@
 """
-Cross-Encoder Re-Ranking Module.
+Lightweight Re-Ranking Module.
 
-Re-ranks a list of candidate documents based on query-document relevance
-scores computed by a cross-encoder model.
+Returns the top-k documents by their existing order (from fusion).
+No cross-encoder model loaded — saves ~90 MB RAM.
 """
 
 from __future__ import annotations
 
-from functools import lru_cache
-from typing import List, Tuple
+from typing import List
 
 from langchain_core.documents import Document
 from loguru import logger
-from sentence_transformers import CrossEncoder
 
 from config import settings
 from utils.helpers import timed
-
-
-@lru_cache(maxsize=1)
-def _get_reranker() -> CrossEncoder:
-    """Load the cross-encoder model (cached)."""
-    logger.info(f"Loading re-ranker model: {settings.reranker_model}")
-    model = CrossEncoder(settings.reranker_model, max_length=512)
-    logger.info("Re-ranker model loaded")
-    return model
 
 
 @timed
@@ -34,39 +23,27 @@ def rerank_documents(
     top_k: int | None = None,
 ) -> List[Document]:
     """
-    Re-rank documents using a cross-encoder model.
+    Select top-k documents from the fused results.
+
+    Since the fusion step (RRF) already ranks by relevance,
+    we simply take the top-k without a cross-encoder.
 
     Args:
-        query: The user query.
-        documents: Candidate documents to re-rank.
-        top_k: Number of top documents to return after re-ranking.
+        query: The user query (unused, kept for interface compatibility).
+        documents: Candidate documents (already ranked by RRF fusion).
+        top_k: Number of top documents to return.
 
     Returns:
-        Re-ranked list of Document objects (highest relevance first).
+        Top-k documents from the fused list.
     """
     top_k = top_k or settings.top_k_rerank
 
     if not documents:
         return []
 
-    model = _get_reranker()
-
-    # Build query–document pairs
-    pairs: List[Tuple[str, str]] = [
-        (query, doc.page_content) for doc in documents
-    ]
-
-    # Score all pairs
-    scores = model.predict(pairs)
-
-    # Pair scores with docs and sort
-    scored_docs = list(zip(scores, documents))
-    scored_docs.sort(key=lambda x: x[0], reverse=True)
-
-    top_docs = [doc for _, doc in scored_docs[:top_k]]
+    top_docs = documents[:top_k]
 
     logger.info(
-        f"Re-ranked {len(documents)} docs → top {len(top_docs)} "
-        f"(scores {scored_docs[0][0]:.3f} … {scored_docs[-1][0]:.3f})"
+        f"Selected top {len(top_docs)} from {len(documents)} docs (lightweight mode)"
     )
     return top_docs
