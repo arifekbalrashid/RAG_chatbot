@@ -24,26 +24,54 @@ class FAISSStore:
         self._embeddings = get_embedding_model()
         self._store: Optional[FAISS] = None
 
-    # Build / extend
+    BATCH_SIZE = 10  # HF free Inference API can't handle large batches
 
     @timed
     def add_documents(self, documents: List[Document]) -> None:
         """
-        Add documents to the FAISS index.
-        If an index already exists, merge into it; otherwise create a new one.
+        Add documents to the FAISS index in small batches.
+        Batching avoids overwhelming the HF Inference API rate limits.
         """
         if not documents:
             logger.warning("No documents to add")
             return
 
-        new_store = FAISS.from_documents(documents, self._embeddings)
+        import time
 
-        if self._store is not None:
-            self._store.merge_from(new_store)
-        else:
-            self._store = new_store
+        total = len(documents)
+        added = 0
 
-        logger.info(f"Added {len(documents)} documents to FAISS index")
+        for i in range(0, total, self.BATCH_SIZE):
+            batch = documents[i : i + self.BATCH_SIZE]
+            batch_num = i // self.BATCH_SIZE + 1
+            total_batches = (total + self.BATCH_SIZE - 1) // self.BATCH_SIZE
+
+            for attempt in range(3):  # up to 3 retries per batch
+                try:
+                    logger.info(f"Embedding batch {batch_num}/{total_batches} ({len(batch)} docs)...")
+                    new_store = FAISS.from_documents(batch, self._embeddings)
+
+                    if self._store is not None:
+                        self._store.merge_from(new_store)
+                    else:
+                        self._store = new_store
+
+                    added += len(batch)
+                    break  # success, move to next batch
+                except Exception as exc:
+                    logger.warning(f"Batch {batch_num} attempt {attempt + 1} failed: {type(exc).__name__}: {exc}")
+                    if attempt < 2:
+                        time.sleep(2 ** attempt)  # backoff: 1s, 2s
+                    else:
+                        raise RuntimeError(
+                            f"Failed to embed batch {batch_num} after 3 attempts: {exc}"
+                        ) from exc
+
+            # Small delay between batches to respect API rate limits
+            if i + self.BATCH_SIZE < total:
+                time.sleep(0.5)
+
+        logger.info(f"Added {added}/{total} documents to FAISS index")
 
     # Query
 
