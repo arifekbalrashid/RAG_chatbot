@@ -1,35 +1,32 @@
 """
 Embedding Model Module.
 
-Uses HuggingFace Inference API for zero-memory embeddings.
+Uses HuggingFace Endpoint Embeddings for zero-memory embeddings.
 No local PyTorch or model downloads required.
 """
 
 from __future__ import annotations
 
-import warnings
 from functools import lru_cache
 
-warnings.filterwarnings("ignore", message=".*HuggingFaceInferenceAPIEmbeddings.*")
-
-from langchain_community.embeddings import HuggingFaceInferenceAPIEmbeddings
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from loguru import logger
 
 from config import settings
 
 
 @lru_cache(maxsize=1)
-def get_embedding_model() -> HuggingFaceInferenceAPIEmbeddings:
+def get_embedding_model() -> HuggingFaceEndpointEmbeddings:
     """
-    Return a cached HuggingFace Inference API embedding instance.
+    Return a cached HuggingFace Endpoint embedding instance.
 
-    Uses the free HF Inference API — no local model, no PyTorch,
-    no memory overhead. Requires HF_TOKEN in environment.
+    Uses the HF Inference API via the new router endpoint — no local model,
+    no PyTorch, no memory overhead. Requires HF_TOKEN in environment.
     """
-    logger.info(f"Initialising HF Inference API embeddings: {settings.embedding_model}")
-    model = HuggingFaceInferenceAPIEmbeddings(
-        api_key=settings.hf_token,
-        model_name=settings.embedding_model,
+    logger.info(f"Initialising HF Endpoint embeddings: {settings.embedding_model}")
+    model = HuggingFaceEndpointEmbeddings(
+        huggingfacehub_api_token=settings.hf_token,
+        model=settings.embedding_model,
     )
     logger.info("Embedding model ready (API-based, zero local memory)")
     return model

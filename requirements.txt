@@ -4,8 +4,9 @@ langchain-community
 langgraph
 langchain-text-splitters
 
-# Embeddings (API-based via HF Inference — no local models)
+# Embeddings (API-based via HF Endpoint — no local models)
 huggingface-hub
+langchain-huggingface
 
 # Vector DB
 faiss-cpu
