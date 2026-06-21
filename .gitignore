@@ -37,3 +37,8 @@ htmlcov/
 
 # Logs
 *.log
+
+# Evaluation results
+eval_results/
+tests/
+evaluation_summary.md
