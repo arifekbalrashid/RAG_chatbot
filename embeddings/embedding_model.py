@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from loguru import logger
 
 from config import settings
 
 
 @lru_cache(maxsize=1)
-def get_embedding_model() -> HuggingFaceEndpointEmbeddings:
+def get_embedding_model() -> HuggingFaceEmbeddings:
     """
     Return a cached HuggingFace Endpoint embedding instance.
 
@@ -24,9 +24,8 @@ def get_embedding_model() -> HuggingFaceEndpointEmbeddings:
     no PyTorch, no memory overhead. Requires HF_TOKEN in environment.
     """
     logger.info(f"Initialising HF Endpoint embeddings: {settings.embedding_model}")
-    model = HuggingFaceEndpointEmbeddings(
-        huggingfacehub_api_token=settings.hf_token,
-        model=settings.embedding_model,
+    model = HuggingFaceEmbeddings(
+        model_name=settings.embedding_model,
     )
     logger.info("Embedding model ready (API-based, zero local memory)")
     return model
